@@ -1,5 +1,12 @@
 # fable-ish Codex
 
+[![English](https://img.shields.io/badge/lang-English-blue)](README.md)
+[![Korean](https://img.shields.io/badge/lang-%ED%95%9C%EA%B5%AD%EC%96%B4-lightgrey)](README.ko.md)
+![Version](https://img.shields.io/badge/version-0.1.3-blue)
+![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![Codex Plugin](https://img.shields.io/badge/Codex-plugin-111111)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
+
 `fable-ish-codex`는 떠나가버린 Fable을 그리워하는 사람들을 위한 작은
 플러그인입니다.
 
