@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 2026-06-15
+
+- Recognized `exit code: 0`, successful status strings, and common build-success output such as `Compiled successfully` as successful verification evidence.
+- Kept Stop hook failures fail-open while wording them as plugin bookkeeping/output issues, not as evidence that user verification failed.
+- Ensured the Stop hook emits one JSON payload through a single output path.
+
 ## 0.1.3 - 2026-06-15
 
 - Removed automatic blocking for `git push`, secret-output commands, and permission approval requests.

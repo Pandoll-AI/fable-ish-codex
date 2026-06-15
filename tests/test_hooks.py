@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import importlib.util
 import json
 import os
 import subprocess
@@ -296,6 +297,102 @@ class HookTestCase(unittest.TestCase):
         )
         self.assertEqual(out, {})
 
+    def test_exit_code_colon_marks_verification_success_and_allows_stop(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {**self.base, "hook_event_name": "UserPromptSubmit", "prompt": "Implement a small code fix"},
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "command": "*** Begin Patch\n*** Update File: api/page-meta.ts\n+x\n*** End Patch\n"
+                },
+                "tool_response": {"success": True},
+            },
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "npx eslint api/page-meta.ts"},
+                "tool_response": {"stdout": "exit code: 0"},
+            },
+        )
+
+        ledger = self.read_ledger()
+        self.assertIs(ledger["verification_results"][-1]["success"], True)
+        self.assertEqual(self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"}), {})
+
+    def test_compiled_successfully_marks_verification_success_and_allows_stop(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {**self.base, "hook_event_name": "UserPromptSubmit", "prompt": "Implement a small code fix"},
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "command": "*** Begin Patch\n*** Update File: app/page.tsx\n+x\n*** End Patch\n"
+                },
+                "tool_response": {"success": True},
+            },
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "npm run build"},
+                "tool_response": {"stdout": "Compiled successfully"},
+            },
+        )
+
+        ledger = self.read_ledger()
+        self.assertIs(ledger["verification_results"][-1]["success"], True)
+        self.assertEqual(self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"}), {})
+
+    def test_status_success_marks_verification_success_and_allows_stop(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {**self.base, "hook_event_name": "UserPromptSubmit", "prompt": "Implement a small code fix"},
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "command": "*** Begin Patch\n*** Update File: package.json\n+x\n*** End Patch\n"
+                },
+                "tool_response": {"success": True},
+            },
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "npm run build"},
+                "tool_response": {"status": "success"},
+            },
+        )
+
+        ledger = self.read_ledger()
+        self.assertIs(ledger["verification_results"][-1]["success"], True)
+        self.assertEqual(self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"}), {})
+
     def test_invalid_text_is_not_treated_as_success(self) -> None:
         self.run_hook(
             "hooks/user_prompt_submit.py",
@@ -329,6 +426,22 @@ class HookTestCase(unittest.TestCase):
     def test_post_hook_always_returns_json_for_bad_stdin(self) -> None:
         stdout = self.run_hook_raw("hooks/post_tool_use.py", "{not json")
         self.assertIsInstance(json.loads(stdout), dict)
+
+    def test_stop_hook_always_returns_json_for_bad_stdin(self) -> None:
+        stdout = self.run_hook_raw("hooks/stop_gate.py", "{not json")
+        self.assertIsInstance(json.loads(stdout), dict)
+
+    def test_stop_hook_failure_payload_names_plugin_issue(self) -> None:
+        spec = importlib.util.spec_from_file_location("stop_gate_under_test", ROOT / "hooks/stop_gate.py")
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        stop_gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(stop_gate)
+
+        payload = stop_gate.failure_payload(RuntimeError("boom"))
+        message = payload.get("systemMessage", "")
+        self.assertIn("plugin bookkeeping/output issue", message)
+        self.assertIn("not evidence that your verification failed", message)
 
     def test_concurrent_post_hooks_return_json_without_ledger_race(self) -> None:
         payloads = [
