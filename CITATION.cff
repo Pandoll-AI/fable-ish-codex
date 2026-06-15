@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use or adapt this project, please cite it as below."
+title: "fable-ish Codex"
+type: software
+version: "0.1.3"
+license: "Apache-2.0"
+repository-code: "https://github.com/Pandoll-AI/fable-ish-codex"
+authors:
+  - name: "Pandoll-AI"
