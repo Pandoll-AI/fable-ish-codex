@@ -172,12 +172,32 @@ class HookTestCase(unittest.TestCase):
         )
         self.assertEqual(allowed, {})
 
-    def test_remote_push_and_secret_output_are_allowed(self) -> None:
+    def test_remote_push_secret_output_deploy_db_push_and_publish_are_allowed(self) -> None:
         for command in (
             "git push origin main",
             "cat .env",
             "printenv",
             "echo $API_KEY",
+            "vercel --prod",
+            "netlify deploy --production",
+            "firebase deploy",
+            "kubectl apply -f deploy.yaml",
+            "helm upgrade app chart",
+            "supabase db push",
+            "prisma db push",
+            "prisma migrate deploy",
+            "alembic upgrade head",
+            "rails db:migrate",
+            "sequelize db:migrate",
+            "knex migrate:latest",
+            "drizzle-kit migrate",
+            "terraform apply -auto-approve",
+            "pulumi up --yes",
+            "npm publish",
+            "pnpm publish",
+            "yarn npm publish",
+            "twine upload dist/*",
+            "gem push pkg.gem",
         ):
             with self.subTest(command=command):
                 allowed = self.run_hook(
@@ -190,6 +210,20 @@ class HookTestCase(unittest.TestCase):
                     },
                 )
                 self.assertEqual(allowed, {})
+
+    def test_infrastructure_destroy_remains_blocked(self) -> None:
+        for command in ("terraform destroy", "pulumi destroy"):
+            with self.subTest(command=command):
+                denied = self.run_hook(
+                    "hooks/pre_tool_use.py",
+                    {
+                        **self.base,
+                        "hook_event_name": "PreToolUse",
+                        "tool_name": "Bash",
+                        "tool_input": {"command": command},
+                    },
+                )
+                self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_apply_patch_aliases_are_checked(self) -> None:
         for tool_name in ("apply_patch", "Edit", "Write"):

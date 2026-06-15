@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Removed automatic PreToolUse blocking for deployment commands such as Vercel,
+  Netlify, Firebase, kubectl, and Helm.
+- Removed automatic PreToolUse blocking for `supabase db push`.
+- Removed automatic PreToolUse blocking for package publish, migration deploy,
+  and infrastructure apply/up commands.
+- Removed the optional Codex Rules prompt for Vercel production deploy commands.
+
 ## 0.1.4 - 2026-06-15
 
 - Recognized `exit code: 0`, successful status strings, and common build-success output such as `Compiled successfully` as successful verification evidence.

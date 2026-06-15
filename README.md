@@ -55,15 +55,17 @@ API dependency, background worker, or LLM classifier.
 - `UserPromptSubmit` classifies requests as `quick`, `normal`, `deep`, or
   `blocked`, then injects compact task guidance.
 - `PreToolUse` blocks a small set of high-risk local actions such as destructive
-  deletes, destructive Git cleanup, production deploy commands, infrastructure
-  writes, database migrations, and package publishing.
+  deletes, destructive Git cleanup, infrastructure destruction, and risky patch
+  edits.
 - `PostToolUse` records changed-file signals, verification commands, failures,
   and coarse coverage information in a small JSON ledger under `PLUGIN_DATA`.
 - `Stop` asks Codex to continue when normal or deep work has no verification
   evidence, capped to avoid continuation loops.
 
-By design, `git push`, secret-output commands, and permission approval requests
-are not blocked by this plugin.
+By design, `git push`, secret-output commands, deployment commands, database
+push commands, package publishing, migration deploy commands, infrastructure
+apply/up commands, and permission approval requests are not blocked by this
+plugin.
 
 ## Install
 
@@ -86,7 +88,9 @@ The hook layer is the default guardrail. For stronger local command policy, adap
 `rules/fable-ish.rules` into an active Codex rules layer.
 
 For secret-file access policy, adapt `examples/permissions.toml` into your Codex
-configuration. Secret output is intentionally not blocked by the hooks.
+configuration. Secret output, deployment commands, database push commands,
+package publishing, migration deploy commands, and infrastructure apply/up
+commands are intentionally not blocked by the hooks.
 
 ## Validation
 

@@ -1,8 +1,4 @@
 prefix_rule(pattern=["git", "reset", "--hard"], decision="forbidden", justification="Destructive worktree reset is not part of normal fable-ish flow.")
 prefix_rule(pattern=["git", "clean"], decision="prompt", justification="Bulk cleanup can remove untracked work.")
 prefix_rule(pattern=["rm", "-rf"], decision="prompt", justification="Recursive deletion requires explicit confirmation.")
-prefix_rule(pattern=["npm", "publish"], decision="prompt", justification="Package publishing requires explicit confirmation.")
-prefix_rule(pattern=["pnpm", "publish"], decision="prompt", justification="Package publishing requires explicit confirmation.")
-prefix_rule(pattern=["terraform", "apply"], decision="prompt", justification="Infrastructure mutation requires explicit confirmation.")
 prefix_rule(pattern=["terraform", "destroy"], decision="forbidden", justification="Infrastructure destruction is outside normal fable-ish flow.")
-prefix_rule(pattern=["vercel", "--prod"], decision="prompt", justification="Production deployment requires explicit confirmation.")

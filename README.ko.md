@@ -49,7 +49,9 @@
 - 변경 파일과 검증 명령을 JSON ledger에 기록합니다.
 - 검증 증거 없이 deep/normal 작업을 끝내려 할 때 이어서 검증하도록 요청합니다.
 
-`git push`, secret 출력 명령, permission approval request는 막지 않습니다.
+`git push`, secret 출력 명령, 배포 명령, database push 명령, package publish,
+migration deploy, infrastructure apply/up, permission approval request는 막지
+않습니다.
 
 ## 검증
 

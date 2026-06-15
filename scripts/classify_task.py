@@ -37,11 +37,7 @@ COMMAND_RULES: list[tuple[str, re.Pattern[str], str]] = [
     ("destructive-delete", re.compile(r"(?i)\bxargs\b.+\brm\b"), "Bulk xargs rm is blocked."),
     ("destructive-git", re.compile(r"(?i)\bgit\s+reset\s+--hard\b"), "git reset --hard is blocked."),
     ("destructive-git", re.compile(r"(?i)\bgit\s+clean\s+-[A-Za-z]*f"), "git clean -f is blocked."),
-    ("production-deploy", re.compile(r"(?i)\b(vercel|netlify)\b.+\b(--prod|--production|prod)\b"), "Production deploy commands are blocked."),
-    ("production-deploy", re.compile(r"(?i)\bfirebase\s+deploy\b|\bkubectl\s+(apply|delete|rollout|scale)\b|\bhelm\s+(upgrade|install|delete)\b"), "Production or cluster deployment commands are blocked."),
-    ("infra-write", re.compile(r"(?i)\b(terraform\s+apply|terraform\s+destroy|pulumi\s+up|pulumi\s+destroy)\b"), "Infrastructure write commands are blocked."),
-    ("db-migration", re.compile(r"(?i)\b(prisma\s+migrate\s+deploy|alembic\s+upgrade|rails\s+db:migrate|sequelize\s+db:migrate|knex\s+migrate:latest|supabase\s+db\s+push|drizzle-kit\s+migrate)\b"), "Database migration commands are blocked."),
-    ("package-publish", re.compile(r"(?i)\b(npm\s+publish|pnpm\s+publish|yarn\s+npm\s+publish|twine\s+upload|gem\s+push)\b"), "Package publish commands are blocked."),
+    ("infra-destroy", re.compile(r"(?i)\b(terraform\s+destroy|pulumi\s+destroy)\b"), "Infrastructure destruction commands are blocked."),
 ]
 
 PATCH_SECRET_PATH_RE = re.compile(r"(?im)^\*\*\* (Add|Update|Delete) File: .*(\.env|id_rsa|\.pem|secret|token|password)")
