@@ -1,0 +1,9 @@
+[permissions.fable-ish-workspace]
+extends = ":workspace"
+
+[permissions.fable-ish-workspace.filesystem.":workspace_roots"]
+"**/*.env" = "deny"
+"**/.env.*" = "deny"
+"**/*.pem" = "deny"
+"**/id_rsa" = "deny"
+"**/credentials.json" = "deny"

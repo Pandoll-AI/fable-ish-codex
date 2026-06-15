@@ -1,0 +1,23 @@
+{
+  "name": "fable-ish-codex",
+  "version": "0.1.3",
+  "description": "Verification-gated workflow plugin for Codex tasks. Adds lightweight hooks for task classification, risky command checks, verification tracking, and stop-time completion review.",
+  "author": {
+    "name": "fable-ish"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "fable-ish Codex",
+    "shortDescription": "Verification-gated workflow hooks for Codex tasks",
+    "longDescription": "Adds lightweight Codex hooks for task classification, risky command checks, verification tracking, and stop-time completion review while preserving the fable-ish skill workflow.",
+    "developerName": "fable-ish",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use fable-ish verification for this task"
+    ]
+  }
+}
