@@ -2,7 +2,7 @@
 
 [![English](https://img.shields.io/badge/lang-English-blue)](README.md)
 [![Korean](https://img.shields.io/badge/lang-%ED%95%9C%EA%B5%AD%EC%96%B4-lightgrey)](README.ko.md)
-![Version](https://img.shields.io/badge/version-0.1.4-blue)
+![Version](https://img.shields.io/badge/version-1.0.5-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Codex Plugin](https://img.shields.io/badge/Codex-plugin-111111)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
@@ -51,7 +51,8 @@
 
 `git push`, secret 출력 명령, 배포 명령, database push 명령, package publish,
 migration deploy, infrastructure apply/up, permission approval request는 막지
-않습니다.
+않습니다. 안전한 워크플로 명령인 `ship`과 `yeet`, slash-command 형태, `gstack`
+래퍼 형태도 막지 않습니다.
 
 ## 검증
 

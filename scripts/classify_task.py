@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import shlex
 from typing import Any
 
 from ledger import redact
@@ -40,6 +41,10 @@ COMMAND_RULES: list[tuple[str, re.Pattern[str], str]] = [
     ("infra-destroy", re.compile(r"(?i)\b(terraform\s+destroy|pulumi\s+destroy)\b"), "Infrastructure destruction commands are blocked."),
 ]
 
+SAFE_WORKFLOW_COMMANDS = {"ship", "/ship", "yeet", "/yeet"}
+SAFE_WORKFLOW_WRAPPERS = {"gstack"}
+SHELL_CONTROL_TOKENS = {";", "&", "|", "&&", "||"}
+
 PATCH_SECRET_PATH_RE = re.compile(r"(?im)^\*\*\* (Add|Update|Delete) File: .*(\.env|id_rsa|\.pem|secret|token|password)")
 PATCH_DELETE_RE = re.compile(r"(?im)^\*\*\* Delete File: ")
 
@@ -74,6 +79,8 @@ def classify_prompt(prompt: str) -> tuple[str, list[str], str]:
 
 def classify_command(command: str) -> tuple[bool, list[str], str]:
     text = command or ""
+    if is_safe_workflow_command(text):
+        return False, [], ""
     flags: list[str] = []
     reasons: list[str] = []
     for flag, pattern, reason in COMMAND_RULES:
@@ -83,6 +90,27 @@ def classify_command(command: str) -> tuple[bool, list[str], str]:
     if flags:
         return True, sorted(set(flags)), " ".join(reasons)
     return False, [], ""
+
+
+def is_safe_workflow_command(command: str) -> bool:
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return False
+    if not tokens:
+        return False
+    if any(token in SHELL_CONTROL_TOKENS for token in tokens):
+        return False
+    if any("$(" in token or "`" in token for token in tokens):
+        return False
+    first = tokens[0]
+    if first in SAFE_WORKFLOW_COMMANDS:
+        return True
+    if first in SAFE_WORKFLOW_WRAPPERS and len(tokens) > 1 and tokens[1] in {"ship", "yeet"}:
+        return True
+    return False
 
 
 def classify_patch(command: str) -> tuple[bool, list[str], str]:

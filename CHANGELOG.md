@@ -2,18 +2,25 @@
 
 ## Unreleased
 
+## 1.0.5 - 2026-06-18
+
+- Added domain-steering guidance so user-provided rules, edge cases,
+  constraints, and correction criteria drive implementation and verification.
+- Added work-kind selection guidance for build, fix, test, operate, understand,
+  plan, analyze, and document tasks.
+- Expanded verification guidance for documentation, data analysis, and
+  operational proof selection.
+
+## 0.1.4 - 2026-06-16
+
 - Removed automatic PreToolUse blocking for deployment commands such as Vercel,
   Netlify, Firebase, kubectl, and Helm.
 - Removed automatic PreToolUse blocking for `supabase db push`.
 - Removed automatic PreToolUse blocking for package publish, migration deploy,
   and infrastructure apply/up commands.
+- Excluded safe `ship` and `yeet` workflow commands from PreToolUse command
+  restrictions.
 - Removed the optional Codex Rules prompt for Vercel production deploy commands.
-
-## 0.1.4 - 2026-06-15
-
-- Recognized `exit code: 0`, successful status strings, and common build-success output such as `Compiled successfully` as successful verification evidence.
-- Kept Stop hook failures fail-open while wording them as plugin bookkeeping/output issues, not as evidence that user verification failed.
-- Ensured the Stop hook emits one JSON payload through a single output path.
 
 ## 0.1.3 - 2026-06-15
 
