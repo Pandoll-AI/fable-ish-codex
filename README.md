@@ -1,5 +1,7 @@
 # fable-ish
 
+![fable-ish Pandoll verification hero](assets/hero.png)
+
 `fable-ish` is a Codex plugin that adds a lightweight verification gate around
 coding tasks while keeping the original `fable-ish` skill name.
 `fablish` is treated only as a common typo alias in instructions; it is not a
