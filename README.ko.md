@@ -2,7 +2,7 @@
 
 [![English](https://img.shields.io/badge/lang-English-blue)](README.md)
 [![Korean](https://img.shields.io/badge/lang-%ED%95%9C%EA%B5%AD%EC%96%B4-lightgrey)](README.ko.md)
-![Version](https://img.shields.io/badge/version-1.0.5-blue)
+![Version](https://img.shields.io/badge/version-1.0.6-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Codex Plugin](https://img.shields.io/badge/Codex-plugin-111111)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
@@ -48,11 +48,20 @@
 - 일부 고위험 명령을 실행 전에 막습니다.
 - 변경 파일과 검증 명령을 JSON ledger에 기록합니다.
 - 검증 증거 없이 deep/normal 작업을 끝내려 할 때 이어서 검증하도록 요청합니다.
+- auth/migrations/money/CI 같은 위험 경로가 바뀌면 `normal` 작업을 `deep`으로
+  승격합니다.
+- `scripts/fable_criteria.py`로 모델이 직접 선언한 탈출 기준을 기록하고, deep
+  작업은 열린 기준이 남아 있으면 멈추지 못하게 합니다. 기준 수립이라는 판단은
+  모델에 남기고, 플러그인은 장부만 담당합니다.
+- build/typecheck 단독 성공은 deep 작업의 완료 증거로 인정하지 않습니다.
+- 멈출 때마다 변경/검증/coverage/기준 현황을 한 줄 계기판으로 보여주고, 검증
+  안 된 변경은 다음 프롬프트에 비차단 컨텍스트로 승계합니다.
 
-`git push`, secret 출력 명령, 배포 명령, database push 명령, package publish,
-migration deploy, infrastructure apply/up, permission approval request는 막지
-않습니다. 안전한 워크플로 명령인 `ship`과 `yeet`, slash-command 형태, `gstack`
-래퍼 형태도 막지 않습니다.
+`git push`, secret 출력 명령, permission approval request는 제한하지 않습니다.
+package publish, migration deploy, infrastructure apply, production 배포
+명령은 자동 차단하지 않되 실행 전에 한 번 확인(`ask`)을 요청합니다. 안전한
+워크플로 명령인 `ship`과 `yeet`, slash-command 형태, `gstack` 래퍼 형태는
+제한하지 않습니다.
 
 ## 검증
 

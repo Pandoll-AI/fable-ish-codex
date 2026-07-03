@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import hashlib
 import json
@@ -11,7 +12,7 @@ import re
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 
 DEFAULT_LEDGER: dict[str, Any] = {
@@ -24,6 +25,8 @@ DEFAULT_LEDGER: dict[str, Any] = {
     "verification_commands": [],
     "verification_results": [],
     "coverage_relation": "none",
+    "exit_criteria": [],
+    "carried_over_unverified": [],
     "failures": [],
     "stop_blocks": 0,
     "last_updated": "",
@@ -127,7 +130,16 @@ def load_ledger(input_data: dict[str, Any]) -> dict[str, Any]:
     ledger = default_ledger()
     if isinstance(data, dict):
         ledger.update({key: data.get(key, value) for key, value in ledger.items()})
-    for key in ("risk_flags", "changed_paths", "change_kinds", "verification_commands", "verification_results", "failures"):
+    for key in (
+        "risk_flags",
+        "changed_paths",
+        "change_kinds",
+        "verification_commands",
+        "verification_results",
+        "exit_criteria",
+        "carried_over_unverified",
+        "failures",
+    ):
         if not isinstance(ledger.get(key), list):
             ledger[key] = []
     if ledger.get("coverage_relation") not in {"direct", "generic", "uncertain", "none"}:
@@ -154,16 +166,36 @@ def save_ledger(input_data: dict[str, Any], ledger: dict[str, Any]) -> Path:
     return path
 
 
+@contextlib.contextmanager
+def ledger_lock(path: Path) -> Iterator[None]:
+    # Atomic writes alone cannot stop concurrent hooks from losing each
+    # other's updates (load -> modify -> save), so serialize the whole cycle.
+    try:
+        import fcntl
+    except ImportError:
+        yield
+        return
+    lock_path = path.with_name(path.name + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w", encoding="utf-8") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 def update_ledger(input_data: dict[str, Any], updater: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
-    ledger = load_ledger(input_data)
-    updater(ledger)
-    trim_ledger(ledger)
-    save_ledger(input_data, ledger)
+    with ledger_lock(ledger_path(input_data)):
+        ledger = load_ledger(input_data)
+        updater(ledger)
+        trim_ledger(ledger)
+        save_ledger(input_data, ledger)
     return ledger
 
 
 def trim_ledger(ledger: dict[str, Any]) -> None:
-    for key in ("risk_flags", "changed_paths", "change_kinds"):
+    for key in ("risk_flags", "changed_paths", "change_kinds", "carried_over_unverified"):
         values = []
         for value in ledger.get(key, []):
             if value not in values:
@@ -171,6 +203,7 @@ def trim_ledger(ledger: dict[str, Any]) -> None:
         ledger[key] = values[:40 if key == "changed_paths" else 20]
     for key in ("verification_commands", "verification_results", "failures"):
         ledger[key] = ledger.get(key, [])[-40:]
+    ledger["exit_criteria"] = ledger.get("exit_criteria", [])[-20:]
 
 
 def add_unique(ledger: dict[str, Any], key: str, values: list[str]) -> None:

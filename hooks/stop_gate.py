@@ -11,8 +11,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from ledger import emit_json, load_ledger, read_stdin_json, save_ledger
-from verify_state import should_block_stop, warning_after_max_blocks
+from ledger import emit_json, load_ledger, read_stdin_json, update_ledger
+from verify_state import dashboard, should_block_stop, warning_after_max_blocks
+
+
+def has_activity(ledger) -> bool:
+    return bool(
+        ledger.get("changed_files_seen")
+        or ledger.get("verification_results")
+        or ledger.get("failures")
+        or ledger.get("exit_criteria")
+        or ledger.get("carried_over_unverified")
+    )
 
 
 FAIL_OPEN_PREFIX = (
@@ -36,22 +46,28 @@ def main() -> dict[str, object]:
             },
         }
     ledger = load_ledger(input_data)
+    status = dashboard(ledger)
     block, reason = should_block_stop(ledger)
     if block:
-        ledger["stop_blocks"] = int(ledger.get("stop_blocks") or 0) + 1
-        save_ledger(input_data, ledger)
-        return {"decision": "block", "reason": reason}
+        def bump(entry):
+            entry["stop_blocks"] = int(entry.get("stop_blocks") or 0) + 1
+
+        update_ledger(input_data, bump)
+        return {"decision": "block", "reason": f"{reason} [{status}]"}
 
     warning = warning_after_max_blocks(ledger)
-    if warning:
-        return {
-            "systemMessage": warning,
-            "hookSpecificOutput": {
-                "hookEventName": "Stop",
-                "additionalContext": warning,
-            },
+    if not warning and not has_activity(ledger):
+        return {}
+    context = f"{warning}\n{status}" if warning else status
+    payload: dict[str, object] = {
+        "hookSpecificOutput": {
+            "hookEventName": "Stop",
+            "additionalContext": context,
         }
-    return {}
+    }
+    if warning:
+        payload["systemMessage"] = warning
+    return payload
 
 
 def run() -> int:

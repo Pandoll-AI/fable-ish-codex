@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+## 1.0.6 - 2026-07-03
+
+- Fixed a ledger lost-update race between concurrent hooks with a file lock;
+  the concurrency test now asserts ledger integrity (was 17-20/24 recorded,
+  now 24/24).
+- Back-merged distribution improvements (fail-open run pattern, exit-code and
+  status parsing) into the canonical source and applied the pattern to all
+  hooks.
+- Added `scripts/sync_dist.py` and `tests/test_dist_sync.py`; the AGENTS.md
+  sync rule is now mechanical instead of prose.
+- Added declared exit criteria: `scripts/fable_criteria.py`
+  declare/revise/satisfy invocations are recorded by PostToolUse and enforced
+  by the stop gate for deep work, so the gate enforces the model's own stated
+  exit conditions.
+- Escalated `normal` tasks to `deep` mid-session when risky paths change
+  (auth, migrations, money paths, CI workflows).
+- Deep work no longer passes the stop gate on build/typecheck/lint alone; stop
+  responses include a one-line status dashboard; unverified changes carry over
+  to the next prompt as visible, non-blocking context.
+- Irreversible outward commands (package publish, migration deploy,
+  infrastructure apply, production deploy) now request confirmation (`ask`)
+  instead of passing silently; the 0.1.4 decision to drop automatic denial is
+  unchanged.
+- Tightened success and coverage heuristics: removed bare `done`/`valid` from
+  success matching and replaced substring path matching with token-boundary
+  matching.
+- Documented the Fable/Opus model-attribution caveat across the
+  reconstruction evidence docs.
+
 ## 1.0.5 - 2026-06-18
 
 - Added domain-steering guidance so user-provided rules, edge cases,

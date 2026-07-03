@@ -95,7 +95,9 @@ class HookTestCase(unittest.TestCase):
                 "tool_response": {"success": True, "stdout": "success"},
             },
         )
-        self.assertEqual(self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"}), {})
+        allowed = self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"})
+        self.assertNotIn("decision", allowed)
+        self.assertIn("fable-ish status", allowed["hookSpecificOutput"]["additionalContext"])
 
     def test_deep_stop_blocks_at_most_twice(self) -> None:
         self.run_hook(
@@ -171,12 +173,27 @@ class HookTestCase(unittest.TestCase):
         )
         self.assertEqual(allowed, {})
 
-    def test_remote_push_secret_output_deploy_db_push_and_publish_are_allowed(self) -> None:
+    def test_remote_push_and_secret_output_remain_allowed(self) -> None:
         for command in (
             "git push origin main",
             "cat .env",
             "printenv",
             "echo $API_KEY",
+        ):
+            with self.subTest(command=command):
+                allowed = self.run_hook(
+                    "hooks/pre_tool_use.py",
+                    {
+                        **self.base,
+                        "hook_event_name": "PreToolUse",
+                        "tool_name": "Bash",
+                        "tool_input": {"command": command},
+                    },
+                )
+                self.assertEqual(allowed, {})
+
+    def test_irreversible_remote_commands_require_confirmation(self) -> None:
+        for command in (
             "vercel --prod",
             "netlify deploy --production",
             "firebase deploy",
@@ -199,7 +216,7 @@ class HookTestCase(unittest.TestCase):
             "gem push pkg.gem",
         ):
             with self.subTest(command=command):
-                allowed = self.run_hook(
+                out = self.run_hook(
                     "hooks/pre_tool_use.py",
                     {
                         **self.base,
@@ -208,7 +225,7 @@ class HookTestCase(unittest.TestCase):
                         "tool_input": {"command": command},
                     },
                 )
-                self.assertEqual(allowed, {})
+                self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "ask")
 
     def test_ship_and_yeet_workflows_are_allowed(self) -> None:
         for command in (
@@ -343,6 +360,175 @@ class HookTestCase(unittest.TestCase):
         self.assertEqual(after["changed_paths"], [])
         self.assertEqual(after["coverage_relation"], "none")
 
+    def test_risky_path_escalates_normal_to_deep(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {**self.base, "hook_event_name": "UserPromptSubmit", "prompt": "Implement a small code fix"},
+        )
+        out = self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "command": "*** Begin Patch\n*** Update File: migrations/0001_init.sql\n+x\n*** End Patch\n"
+                },
+                "tool_response": {"success": True},
+            },
+        )
+        self.assertIn("escalated to deep", out["hookSpecificOutput"]["additionalContext"])
+        self.assertEqual(self.read_ledger()["task_mode"], "deep")
+
+    def test_declared_criteria_gate_stop(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {
+                **self.base,
+                "hook_event_name": "UserPromptSubmit",
+                "prompt": "Do a deep production-ready refactor",
+            },
+        )
+        declared = self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": 'python3 scripts/fable_criteria.py declare "pytest tests green" --kind test'},
+                "tool_response": {"success": True, "stdout": "fable-ish: declaring exit criterion"},
+            },
+        )
+        self.assertIn("c1 recorded", declared["hookSpecificOutput"]["additionalContext"])
+
+        blocked = self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"})
+        self.assertEqual(blocked.get("decision"), "block")
+        self.assertIn("pytest tests green", blocked["reason"])
+
+        satisfied = self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": 'python3 scripts/fable_criteria.py satisfy c1 --evidence "pytest 12 passed"'},
+                "tool_response": {"success": True, "stdout": "fable-ish: marking c1 satisfied"},
+            },
+        )
+        self.assertIn("satisfied", satisfied["hookSpecificOutput"]["additionalContext"])
+
+        allowed = self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"})
+        self.assertNotIn("decision", allowed)
+
+    def test_criteria_invocation_is_exempt_but_not_chains(self) -> None:
+        allowed = self.run_hook(
+            "hooks/pre_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": 'python3 scripts/fable_criteria.py declare "guard against rm -rf /" --kind test'},
+            },
+        )
+        self.assertEqual(allowed, {})
+
+        denied = self.run_hook(
+            "hooks/pre_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": 'python3 scripts/fable_criteria.py declare "x" && git reset --hard'},
+            },
+        )
+        self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
+
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": 'python3 scripts/fable_criteria.py declare "guard against rm -rf /" --kind test'},
+                "tool_response": {"success": True},
+            },
+        )
+        ledger = self.read_ledger()
+        self.assertEqual(ledger["verification_results"], [])
+        self.assertFalse(ledger["changed_files_seen"])
+
+    def test_build_only_is_insufficient_for_deep(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {
+                **self.base,
+                "hook_event_name": "UserPromptSubmit",
+                "prompt": "Do a deep production-ready refactor",
+            },
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "command": "*** Begin Patch\n*** Update File: app.py\n+x\n*** End Patch\n"
+                },
+                "tool_response": {"success": True},
+            },
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "npm run build"},
+                "tool_response": {"success": True, "stdout": "build completed"},
+            },
+        )
+        blocked = self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"})
+        self.assertEqual(blocked.get("decision"), "block")
+
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "pytest tests/test_app.py"},
+                "tool_response": {"success": True, "stdout": "12 passed"},
+            },
+        )
+        allowed = self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"})
+        self.assertNotIn("decision", allowed)
+
+    def test_carried_over_unverified_paths_are_surfaced(self) -> None:
+        self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {**self.base, "hook_event_name": "UserPromptSubmit", "prompt": "Implement a small code fix"},
+        )
+        self.run_hook(
+            "hooks/post_tool_use.py",
+            {
+                **self.base,
+                "hook_event_name": "PostToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "command": "*** Begin Patch\n*** Update File: app.py\n+x\n*** End Patch\n"
+                },
+                "tool_response": {"success": True},
+            },
+        )
+        out = self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {**self.base, "hook_event_name": "UserPromptSubmit", "prompt": "간단히 설명만 해줘"},
+        )
+        context = out["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("Unverified changes from the previous prompt: app.py", context)
+        self.assertEqual(self.read_ledger()["carried_over_unverified"], ["app.py"])
+
     def test_successful_zero_error_output_is_not_recorded_as_failure(self) -> None:
         self.run_hook(
             "hooks/user_prompt_submit.py",
@@ -445,6 +631,9 @@ class HookTestCase(unittest.TestCase):
             outputs = list(pool.map(run, payloads))
 
         self.assertTrue(all(output == {} for output in outputs))
+        ledger = self.read_ledger()
+        expected = {f"app_{idx}.py" for idx in range(24)}
+        self.assertEqual(set(ledger["changed_paths"]), expected)
 
 
 if __name__ == "__main__":

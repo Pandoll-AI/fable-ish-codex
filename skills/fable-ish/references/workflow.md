@@ -28,6 +28,34 @@ First classify depth: quick, normal, deep, or blocked. Then classify work kind:
 
 Use depth to choose rigor. Use work kind to choose proof.
 
+## Deep-Task Preamble: Six Questions
+
+Before implementing a deep task, answer these in prose (they are the harness):
+
+1. What invariant does this work unit preserve or change?
+2. What failure scenario would show that invariant broken?
+3. What must be observed to exit this work unit?
+4. Which tool produces that observation?
+5. If the observation is ambiguous, will you raise or lower the bar?
+6. Is the next loop implementation, review, operational check, or data-wait?
+
+Then declare the answer to question 3 as a tracked exit criterion:
+
+```bash
+python3 scripts/fable_criteria.py declare "<observable criterion>" --kind test|validator|runtime|browser|ci|data-wait
+```
+
+When new risk appears mid-task, revise with a reason; when the evidence is
+actually observed, mark it satisfied:
+
+```bash
+python3 scripts/fable_criteria.py revise <id> "<new criterion>" --reason "<why the bar moved>"
+python3 scripts/fable_criteria.py satisfy <id> --evidence "<what was observed>"
+```
+
+The stop gate blocks deep completion while declared criteria remain open.
+Do not satisfy a criterion whose evidence was not observed.
+
 ## Work Loop
 
 For normal and deep tasks:

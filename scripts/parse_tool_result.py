@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from ledger import classify_path_kind, redact
@@ -18,6 +19,9 @@ VERIFY_RE = re.compile(
     r")\b"
 )
 DIRECT_TEST_RE = re.compile(r"(?i)(pytest|unittest|vitest|jest|playwright|cypress|rspec|go\s+test|cargo\s+test)")
+# Build/typecheck/lint prove compilation, not behavior; deep tasks need at least
+# one non-build proof (see verify_state.py and docs "build success != user-visible success").
+BUILD_ONLY_RE = re.compile(r"(?i)\b(build|tsc|typecheck|lint|eslint|ruff|flake8|mypy|pyright|py_compile|compileall)\b")
 FAILURE_RE = re.compile(
     r"(?i)(command not found|no such file or directory|traceback|syntaxerror|failed|failure|"
     r"\berror:|\b[1-9][0-9]*\s+errors?\b|exit code\s*:?\s*[1-9]|exited with code\s*:?\s*[1-9]|"
@@ -26,12 +30,13 @@ FAILURE_RE = re.compile(
 EXIT_ZERO_RE = re.compile(r"(?i)\b(exit code|exited with code|process exited with code)\s*:?\s*0\b")
 SUCCESS_RE = re.compile(
     r"(?i)\b(passed|success(?:fully)?|succeeded|0 failed|build completed|"
-    r"compiled successfully|built successfully|build succeeded|done|valid)\b"
+    r"compiled successfully|built successfully|build succeeded)\b"
 )
 PATCH_PATH_RE = re.compile(r"(?im)^\*\*\* (?:Add|Update|Delete) File: (.+)$")
 MUTATING_BASH_RE = re.compile(r"(?i)\b(apply_patch|python\s+.*\s+-m\s+compileall|chmod|mkdir|mv|cp|rm|touch|npm\s+run\s+build|pnpm\s+build|yarn\s+build)\b")
 SUCCESS_STATUSES = {"success", "succeeded", "completed", "complete", "ok", "passed", "pass"}
 FAILURE_STATUSES = {"failed", "failure", "error", "errored", "fatal", "timeout", "timed_out"}
+COMMAND_TOKEN_SPLIT_RE = re.compile(r"[\s'\";|&()<>]+")
 
 
 def response_text(value: Any, limit: int = 4000) -> str:
@@ -98,6 +103,11 @@ def is_verification_command(command: str) -> bool:
     return bool(VERIFY_RE.search(command or ""))
 
 
+def is_build_only_command(command: str) -> bool:
+    stripped = BUILD_ONLY_RE.sub("", command or "")
+    return bool(BUILD_ONLY_RE.search(command or "")) and not VERIFY_RE.search(stripped)
+
+
 def detect_failure(input_data: dict[str, Any]) -> dict[str, Any] | None:
     text = response_text(input_data.get("tool_response", input_data))
     success = exit_success(input_data, text)
@@ -140,11 +150,24 @@ def changed_kinds(input_data: dict[str, Any]) -> list[str]:
     return []
 
 
+def path_mentioned(command: str, path: str) -> bool:
+    clean = (path or "").strip()
+    name = Path(clean).name
+    if not name:
+        return False
+    for token in COMMAND_TOKEN_SPLIT_RE.split(command or ""):
+        if not token:
+            continue
+        if token == clean or token == name or token.endswith("/" + name):
+            return True
+    return False
+
+
 def verification_coverage(command: str, changed: list[str]) -> str:
     if not command:
         return "none"
     clean_paths = [path.strip() for path in changed if path and path not in {"patch", "edit"}]
-    if clean_paths and any(path in command for path in clean_paths):
+    if clean_paths and any(path_mentioned(command, path) for path in clean_paths):
         return "direct"
     if DIRECT_TEST_RE.search(command) and re.search(r"(?i)(test|spec|__tests__)", command):
         return "direct"
@@ -164,4 +187,5 @@ def verification_record(input_data: dict[str, Any]) -> dict[str, Any] | None:
         "success": bool(success) if success is not None else None,
         "summary": redact(text, 220),
         "coverage_relation": verification_coverage(command, []),
+        "build_only": is_build_only_command(command),
     }

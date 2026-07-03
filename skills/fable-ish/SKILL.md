@@ -15,7 +15,7 @@ Match verification depth to task risk.
 
 - Quick tasks: answer directly and do not force deep planning.
 - Normal coding tasks: inspect relevant context, make a coherent change, and run one relevant proof when files change.
-- Deep tasks: define the work unit and observable exit proof before final response.
+- Deep tasks: answer the six-question preamble in `references/workflow.md`, declare the exit criterion with `scripts/fable_criteria.py`, and observe it before final response.
 - Blocked tasks: stop when the next action needs user confirmation, credentials, external state, or unsafe destructive scope.
 
 Preserve domain meaning. Treat user-provided rules, edge cases, constraints, and correction criteria as primary inputs for implementation and verification.

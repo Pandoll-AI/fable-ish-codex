@@ -7,6 +7,7 @@ import re
 import shlex
 from typing import Any
 
+from fable_criteria import parse_invocation
 from ledger import redact
 
 
@@ -40,6 +41,27 @@ COMMAND_RULES: list[tuple[str, re.Pattern[str], str]] = [
     ("destructive-git", re.compile(r"(?i)\bgit\s+clean\s+-[A-Za-z]*f"), "git clean -f is blocked."),
     ("infra-destroy", re.compile(r"(?i)\b(terraform\s+destroy|pulumi\s+destroy)\b"), "Infrastructure destruction commands are blocked."),
 ]
+
+# Irreversible outward-facing commands: never auto-denied (0.1.4 decision),
+# but they warrant one explicit confirmation before side effects leave the machine.
+ASK_COMMAND_RULES: list[tuple[str, re.Pattern[str], str]] = [
+    ("remote-publish", re.compile(r"(?i)\b(npm|pnpm)\s+publish\b|\byarn\s+npm\s+publish\b|\btwine\s+upload\b|\bgem\s+push\b|\bcargo\s+publish\b"), "Package publishing is irreversible; confirm before publishing."),
+    ("db-migrate-deploy", re.compile(r"(?i)\b(prisma\s+migrate\s+deploy|prisma\s+db\s+push|supabase\s+db\s+push|alembic\s+upgrade|rails\s+db:migrate|sequelize\s+db:migrate|knex\s+migrate:latest|drizzle-kit\s+migrate)\b"), "Database migrations mutate shared state; confirm before applying."),
+    ("infra-apply", re.compile(r"(?i)\b(terraform\s+apply|pulumi\s+up)\b"), "Infrastructure apply changes live resources; confirm before applying."),
+    ("prod-deploy", re.compile(r"(?i)\bvercel\b[^\n]*--prod|\bnetlify\s+deploy\b[^\n]*--?prod(uction)?|\bfirebase\s+deploy\b|\bkubectl\s+apply\b|\bhelm\s+(upgrade|install)\b"), "Production deployment is outward-facing; confirm before deploying."),
+]
+
+# Paths whose invariants justify deep verification regardless of prompt wording.
+RISKY_PATH_RE = re.compile(
+    r"(?i)(^|[/\\])("
+    r"migrations?[/\\]|"
+    r"[^/\\]*auth(?!or\b)[^/\\]*|"
+    r"[^/\\]*(payment|billing|checkout|money)[^/\\]*|"
+    r"\.github[/\\]workflows[/\\]|"
+    r"dockerfile[^/\\]*|"
+    r"[^/\\]*(secret|credential)[^/\\]*"
+    r")"
+)
 
 SAFE_WORKFLOW_COMMANDS = {"ship", "/ship", "yeet", "/yeet"}
 SAFE_WORKFLOW_WRAPPERS = {"gstack"}
@@ -77,10 +99,14 @@ def classify_prompt(prompt: str) -> tuple[str, list[str], str]:
     return "quick", risks, redact(text, 180)
 
 
-def classify_command(command: str) -> tuple[bool, list[str], str]:
+def classify_command(command: str) -> tuple[str, list[str], str]:
     text = command or ""
     if is_safe_workflow_command(text):
-        return False, [], ""
+        return "", [], ""
+    if parse_invocation(text) is not None:
+        # Pure criteria bookkeeping; quoted criterion text must not trip
+        # command patterns. parse_invocation rejects shell chains.
+        return "", [], ""
     flags: list[str] = []
     reasons: list[str] = []
     for flag, pattern, reason in COMMAND_RULES:
@@ -88,8 +114,14 @@ def classify_command(command: str) -> tuple[bool, list[str], str]:
             flags.append(flag)
             reasons.append(reason)
     if flags:
-        return True, sorted(set(flags)), " ".join(reasons)
-    return False, [], ""
+        return "deny", sorted(set(flags)), " ".join(reasons)
+    for flag, pattern, reason in ASK_COMMAND_RULES:
+        if pattern.search(text):
+            flags.append(flag)
+            reasons.append(reason)
+    if flags:
+        return "ask", sorted(set(flags)), " ".join(reasons)
+    return "", [], ""
 
 
 def is_safe_workflow_command(command: str) -> bool:
@@ -113,7 +145,7 @@ def is_safe_workflow_command(command: str) -> bool:
     return False
 
 
-def classify_patch(command: str) -> tuple[bool, list[str], str]:
+def classify_patch(command: str) -> tuple[str, list[str], str]:
     text = command or ""
     flags: list[str] = []
     reasons: list[str] = []
@@ -125,8 +157,8 @@ def classify_patch(command: str) -> tuple[bool, list[str], str]:
         flags.append("mass-delete")
         reasons.append("Patch deletes more than five files.")
     if flags:
-        return True, flags, " ".join(reasons)
-    return False, [], ""
+        return "deny", flags, " ".join(reasons)
+    return "", [], ""
 
 
 def tool_command(input_data: dict[str, Any]) -> str:
@@ -142,14 +174,14 @@ def tool_command(input_data: dict[str, Any]) -> str:
     return ""
 
 
-def classify_tool_risk(input_data: dict[str, Any]) -> tuple[bool, list[str], str]:
+def classify_tool_risk(input_data: dict[str, Any]) -> tuple[str, list[str], str]:
     tool_name = str(input_data.get("tool_name") or "")
     command = tool_command(input_data)
     if tool_name in {"apply_patch", "Edit", "Write"}:
         return classify_patch(command)
     if tool_name == "Bash":
         return classify_command(command)
-    return False, [], ""
+    return "", [], ""
 
 
 def context_for_mode(mode: str, risk_flags: list[str]) -> str:

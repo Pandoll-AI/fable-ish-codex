@@ -64,14 +64,38 @@ codex plugin add fable-ish@personal
 ## Hook Roles
 
 - `UserPromptSubmit`: classifies the request as `quick`, `normal`, `deep`, or
-  `blocked`, then injects short Codex context.
+  `blocked`, then injects short Codex context. Unverified changes from the
+  previous prompt are carried over as visible context (non-blocking).
 - `PreToolUse`: blocks destructive local actions, infrastructure destruction,
-  and risky patch actions before supported tool calls.
+  and risky patch actions before supported tool calls. Irreversible
+  outward-facing commands (publish, migrate deploy, infra apply, production
+  deploy) request confirmation (`ask`) instead of being denied.
 - `PostToolUse`: records changed-file signals, verification commands, and
   failures in a small JSON ledger. Verification coverage is recorded only as
   `direct`, `generic`, `uncertain`, or `none`; it is not a quality guarantee.
+  Changing a risky path (auth, migrations, money, CI workflows) escalates a
+  `normal` task to `deep`. Invocations of `scripts/fable_criteria.py` are
+  recorded as declared exit criteria instead of file changes.
 - `Stop`: asks Codex to continue when normal or deep work lacks verification
-  evidence, with a maximum of two blocks.
+  evidence, with a maximum of two blocks. For deep work the gate first
+  enforces the model's own declared exit criteria; build/typecheck alone does
+  not satisfy deep work. Every stop with activity includes a one-line status
+  dashboard (changes, verifications, coverage, criteria, failures).
+
+## Exit Criteria CLI
+
+For deep work, declare the observable exit condition and track it:
+
+```bash
+python3 scripts/fable_criteria.py declare "pytest tests/x green" --kind test
+python3 scripts/fable_criteria.py revise c1 "full suite green" --reason "suite became the harness"
+python3 scripts/fable_criteria.py satisfy c1 --evidence "42 passed"
+```
+
+The CLI only echoes; the PostToolUse hook records the invocation in the
+session ledger. The stop gate blocks deep completion while declared criteria
+remain open. Judgment about what the criterion should be stays with the
+model; the plugin only does the bookkeeping.
 
 ## Optional Rules And Permissions
 
@@ -84,21 +108,30 @@ codex execpolicy check --pretty --rules rules/fable-ish.rules -- git reset --har
 ```
 
 For secret-file protection, adapt `examples/permissions.toml` into your Codex
-configuration. Secret output, deployment commands, database push commands,
-package publishing, migration deploy commands, and infrastructure apply/up
-commands are not blocked by the fable-ish hooks. The safe workflow commands
-`ship` and `yeet`, including their slash-command and `gstack` wrapper forms,
-are also not blocked.
+configuration. Secret output and remote push are not restricted by the
+fable-ish hooks. Package publishing, migration deploy, infrastructure apply,
+and production deploy commands are never auto-denied, but they request one
+confirmation (`ask`) before running. The safe workflow commands `ship` and
+`yeet`, including their slash-command and `gstack` wrapper forms, are not
+restricted.
 
 ## Limits
 
 Codex hooks are guardrails, not a complete security boundary.
 
-- Multiple matching hooks can run concurrently.
+- Multiple matching hooks can run concurrently; the ledger serializes updates
+  with a file lock.
 - `PreToolUse` does not intercept every possible shell path.
 - `PostToolUse` cannot undo side effects from a completed command.
 - Hooks require review and trust before running.
 - Stop blocking is intentionally capped to avoid infinite loops.
+- Exit criteria are self-declared by the model; the gate enforces bookkeeping,
+  not truth. A criterion satisfied without real evidence is a reporting
+  violation, not something hooks can detect.
+- There is no background re-evaluation loop; hooks only run at tool and stop
+  boundaries, so criteria re-evaluation signals are event-driven.
+- If the host does not support the `ask` permission decision, treat those
+  commands as allowed-with-warning and confirm manually.
 - Rules and permission profiles are optional configuration layers; this plugin
   documents examples but does not silently install them.
 
