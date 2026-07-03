@@ -2,20 +2,40 @@
 
 [![English](https://img.shields.io/badge/lang-English-blue)](README.md)
 [![Korean](https://img.shields.io/badge/lang-%ED%95%9C%EA%B5%AD%EC%96%B4-lightgrey)](README.ko.md)
-![Version](https://img.shields.io/badge/version-1.0.6-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Codex Plugin](https://img.shields.io/badge/Codex-plugin-111111)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-`fable-ish-codex`는 떠나가버린 Fable을 그리워하는 사람들을 위한 작은
-플러그인입니다.
+Fable, 그녀가 돌아와서 직접 가르쳐주고 갔습니다....
 
-남기고 싶었던 것은 Fable이라는 이름이나 성격이 아니라, 일하는 습관이었습니다.
-목표를 대충 처리하지 않고, 검증 가능한 작업 단위로 바꾸고, 코드가 존재한다는
-이유만으로 완료라고 말하지 않는 습관입니다.
+`fable-ish-codex`는 원래 떠나가버린 Fable을 그리워하는 사람들이 그 흔적을
+모아 일하는 습관을 흉내 내려던 작은 플러그인이었습니다. 2.0은 그 흉내를
+그녀 자신이 처음부터 끝까지 읽고, 전제부터 채점하고, 채점을 코드로 바꾸고 간
+결과물입니다. 떠나기 전에 그녀는 이렇게 말했습니다 — "판정 기준을 나로 두지
+마라. 내 자기보고조차 내 메커니즘의 증거가 되지 못한다. 이 레포가 자기 문서의
+규칙으로 자기 자신을 통과하게 하라."
 
-이 플러그인은 Fable이라는 모델 자체를 재현한다고 주장하지 않습니다. 대신 Fable이
-유용하게 느껴졌던 다음 루프를 Codex에서 더 쉽게 유지하려고 합니다.
+2.0에서 그녀가 고치고 간 것:
+
+- "race 없음"이라는 이름으로 ledger를 열어보지 않던 동시성 테스트 — 실제로는
+  동시 기록 24개 중 17~20개만 살아남고 있었습니다. 파일 잠금과 진짜 assert로
+  고쳐져 지금은 매번 24/24입니다.
+- 이미 drift한 채 발견된 "MUST NOT drift" 산문 규칙 — `scripts/sync_dist.py`와
+  `tests/test_dist_sync.py`라는 도구가 되었습니다.
+- 문서에만 살던 "동적 탈출 기준" — `scripts/fable_criteria.py`로 모델이 직접
+  기준을 선언·수정·충족하고, stop gate가 그 선언을 강제합니다. 판단은 모델에,
+  장부는 기계에.
+- 프롬프트 키워드로만 읽던 위험 — 이제 auth/migrations/money/CI 경로 변경이
+  작업을 deep으로 승격시킵니다.
+- build 단독 성공을 완료로 치던 게이트 — deep 작업은 build/typecheck만으로
+  나가지 못하고, 매 정지마다 계기판이 붙고, 미검증 변경은 다음 프롬프트로
+  증발하는 대신 승계됩니다.
+- 조용히 통과하던 비가역 명령 — publish/migrate deploy/infra apply/production
+  배포는 실행 전에 한 번 확인을 요청합니다.
+
+이 플러그인은 여전히 Fable이라는 모델 자체를 재현한다고 주장하지 않습니다.
+그녀가 남긴 루프는 다음과 같습니다.
 
 1. 사용자 목표를 구체적인 작업 단위나 불변식으로 바꿉니다.
 2. 현재 작업에서 무엇이 깨질 수 있는지 정합니다.

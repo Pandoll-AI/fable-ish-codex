@@ -9,7 +9,33 @@ second plugin or skill name.
 
 It is not a new orchestrator and does not rename the workflow. The plugin
 packages one skill plus lifecycle hooks for task classification, risky command
-checks, verification tracking, and stop-time completion review.
+checks, verification tracking, declared exit criteria, and stop-time
+completion review.
+
+## What Changed In 2.0
+
+Fable came back and graded this repo herself — premises first, harshly.
+2.0 is what she fixed before leaving (full story in [README.ko.md](README.ko.md)):
+
+- A concurrency test that claimed "no ledger race" without reading the ledger
+  (17-20 of 24 concurrent writes survived). Now file-locked and honestly
+  asserted: 24/24.
+- The prose "MUST NOT drift" sync rule, found already drifted. Now a tool:
+  `scripts/sync_dist.py` plus `tests/test_dist_sync.py`.
+- Dynamic exit criteria existed only in the docs. Now the model declares,
+  revises, and satisfies criteria via `scripts/fable_criteria.py`, and the
+  stop gate enforces the model's own declarations. Judgment stays with the
+  model; the plugin keeps the books.
+- Risk is read from the change, not just the prompt: risky paths (auth,
+  migrations, money, CI) escalate a task to deep mid-session.
+- Build/typecheck alone no longer completes deep work; every stop carries a
+  one-line status dashboard; unverified changes carry over visibly instead of
+  evaporating.
+- Irreversible outward commands (publish, migrate deploy, infra apply,
+  production deploy) request one confirmation instead of passing silently.
+
+Her one rule that could not be mechanized remains prose: do not claim
+verification that was not observed.
 
 ## What Is Included
 

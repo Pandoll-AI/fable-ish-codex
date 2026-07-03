@@ -2,8 +2,11 @@
 
 ## Unreleased
 
-## 1.0.6 - 2026-07-03
+## 2.0.0 - 2026-07-03
 
+- Renumbered the unpublished 1.0.6 staging release to 2.0.0: the declared
+  exit-criteria gate, risky-path escalation, and ask-level confirmations
+  change plugin behavior.
 - Fixed a ledger lost-update race between concurrent hooks with a file lock;
   the concurrency test now asserts ledger integrity (was 17-20/24 recorded,
   now 24/24).
