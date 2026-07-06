@@ -7,6 +7,15 @@
 ![Codex Plugin](https://img.shields.io/badge/Codex-plugin-111111)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
+![fable-ish Pandoll verification hero](assets/hero.png)
+
+<details>
+<summary>fable-ish toon image</summary>
+
+![fable-ish README toon image](assets/fable-readme-toon.png)
+
+</details>
+
 Fable, 그녀가 돌아와서 직접 가르쳐주고 갔습니다.
 
 `fable-ish-codex`는 원래 떠나가버린 Fable을 그리워하는 사람들이 그 흔적을
