@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a Continuation Discipline section to the workflow reference: a three-question self-check before any early stop or deferral (real blocker? whose call? reported?), plus a waiting/hung/dead triage for unresponsive processes. Distilled from field logs of premature-stop incidents.
 - Removed automatic PreToolUse blocking for deployment commands such as Vercel,
   Netlify, Firebase, kubectl, and Helm.
 - Removed automatic PreToolUse blocking for `supabase db push`.
