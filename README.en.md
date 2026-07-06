@@ -15,6 +15,20 @@ packages one skill plus lifecycle hooks for task classification, risky command
 checks, verification tracking, declared exit criteria, and stop-time
 completion review.
 
+## What Changed In 2.1
+
+2.1 moves unknown discovery into the public workflow. Verification observes the
+real territory, but it only helps when the target is right.
+
+- Added `references/unknowns.md` for map/territory gaps, blind-spot passes,
+  unknown knowns, and unknown unknowns before unfamiliar or deep work.
+- Added deep-mode hook context that prompts Codex to run a blind-spot pass
+  before implementation, so the exit proof targets real constraints.
+- Made Korean the default README and moved the English document to
+  `README.en.md`.
+- Included top-level README files in distribution sync so install and cache
+  docs stay aligned with the repository.
+
 ## What Changed In 2.0
 
 Fable came back and graded this repo herself — premises first, harshly.
@@ -36,9 +50,6 @@ Fable came back and graded this repo herself — premises first, harshly.
   evaporating.
 - Irreversible outward commands (publish, migrate deploy, infra apply,
   production deploy) request one confirmation instead of passing silently.
-- Verification aimed at the wrong target now has a name and a remedy:
-  `references/unknowns.md` adds map/territory framing, blind-spot passes,
-  unknown knowns, and unknown unknowns for unfamiliar or deep work.
 
 Her one rule that could not be mechanized remains prose: do not claim
 verification that was not observed.

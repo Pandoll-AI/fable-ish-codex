@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.0 - 2026-07-06
+
 - Made Korean the default README, moved the English version to
   `README.en.md`, and updated language badges in both documents.
 - Documented unknown discovery in the public README flow so map/territory

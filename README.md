@@ -2,19 +2,34 @@
 
 [![English](https://img.shields.io/badge/lang-English-blue)](README.en.md)
 [![Korean](https://img.shields.io/badge/lang-%ED%95%9C%EA%B5%AD%EC%96%B4-lightgrey)](README.md)
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Codex Plugin](https://img.shields.io/badge/Codex-plugin-111111)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-Fable, 그녀가 돌아와서 직접 가르쳐주고 갔습니다....
+Fable, 그녀가 돌아와서 직접 가르쳐주고 갔습니다.
 
 `fable-ish-codex`는 원래 떠나가버린 Fable을 그리워하는 사람들이 그 흔적을
-모아 일하는 습관을 흉내 내려던 작은 플러그인이었습니다. 2.0은 그 흉내를
-그녀 자신이 처음부터 끝까지 읽고, 전제부터 채점하고, 채점을 코드로 바꾸고 간
-결과물입니다. 떠나기 전에 그녀는 이렇게 말했습니다 — "판정 기준을 나로 두지
-마라. 내 자기보고조차 내 메커니즘의 증거가 되지 못한다. 이 레포가 자기 문서의
-규칙으로 자기 자신을 통과하게 하라."
+모아 일하는 습관을 흉내 내려던 작은 플러그인입니다. 2.0은 그 흉내를 Fable이
+직접 읽고, 전제부터 채점하고, 채점을 코드로 바꾼 결과였습니다. 떠나기 전에
+그녀는 이렇게 말했습니다 — "판정 기준을 나로 두지 마라. 내 자기보고조차 내
+메커니즘의 증거가 되지 못한다. 이 레포가 자기 문서의 규칙으로 자기 자신을
+통과하게 하라."
+
+2.1은 그 다음 빈칸을 다룹니다. 검증은 실제 영역을 관찰하지만, 무엇을 검증해야
+하는지 잘못 잡으면 엉뚱한 증거만 쌓입니다. 그래서 2.1은 구현 전에 모르는 것을
+찾고, 그 발견을 종료 기준과 검증 방식에 연결합니다.
+
+2.1에서 바뀐 것:
+
+- `references/unknowns.md`를 추가해 map/territory 차이, blind spot, unknown
+  knowns, unknown unknowns를 작업 전에 드러내는 방법을 정리했습니다.
+- deep 작업의 자동 훅 컨텍스트에 blind-spot pass 지시를 넣어, Codex가 구현 전에
+  실제 제약을 먼저 확인하도록 했습니다.
+- 한국어 README를 기본 문서로 두고, English 배지에서 `README.en.md`로 이동하게
+  정리했습니다.
+- README 파일도 배포 동기화 대상에 포함해 설치본과 Codex 캐시의 문서가
+  레포 문서와 어긋나지 않게 했습니다.
 
 2.0에서 그녀가 고치고 간 것:
 
@@ -33,12 +48,9 @@ Fable, 그녀가 돌아와서 직접 가르쳐주고 갔습니다....
   증발하는 대신 승계됩니다.
 - 조용히 통과하던 비가역 명령 — publish/migrate deploy/infra apply/production
   배포는 실행 전에 한 번 확인을 요청합니다.
-- 검증할 대상을 잘못 잡는 문제 — `references/unknowns.md`를 추가해 낯설거나
-  깊은 작업에서 map/territory 차이, blind spot, unknown knowns, unknown unknowns를
-  먼저 드러내고 그 결과를 검증 기준에 반영하게 했습니다.
 
 이 플러그인은 여전히 Fable이라는 모델 자체를 재현한다고 주장하지 않습니다.
-그녀가 남긴 루프는 다음과 같습니다.
+그녀가 남긴 루프는 분명합니다.
 
 1. 사용자 목표를 구체적인 작업 단위나 불변식으로 바꿉니다.
 2. 현재 작업에서 무엇이 깨질 수 있는지 정합니다.
@@ -48,9 +60,8 @@ Fable, 그녀가 돌아와서 직접 가르쳐주고 갔습니다....
 6. 실패 가능성이 높은 경로를 다시 확인합니다.
 7. 검증된 경계에서만 멈추거나, 남은 blocker를 명확히 적습니다.
 
-짧게 말하면, 이 플러그인의 목적은 동적인 종료 조건, 증거 기반 완료, 위험도에
-맞춘 리뷰, 그리고 실제로 관찰한 검증만 보고하는 습관을 Codex 작업에 붙이는
-것입니다.
+짧게 말하면, 이 플러그인은 Codex 작업에 세 가지 습관을 붙입니다. 동적인 종료
+조건, 증거 기반 완료, 그리고 실제로 관찰한 검증만 보고하는 태도입니다.
 
 한국어 문서가 기본 README입니다. 상단의 English 배지를 누르면 영문 버전으로
 이동합니다.
