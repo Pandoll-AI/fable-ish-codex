@@ -20,6 +20,8 @@ Match verification depth to task risk.
 
 Preserve domain meaning. Treat user-provided rules, edge cases, constraints, and correction criteria as primary inputs for implementation and verification.
 
+Match unknown-discovery to unknown-density. Before unfamiliar or deep work, clarify the map (intent, blind spots, references) so the proof is aimed at the right thing; see `references/unknowns.md`.
+
 Do not claim verification that was not observed.
 
 ## References
@@ -27,6 +29,7 @@ Do not claim verification that was not observed.
 Read only the reference needed for the current task:
 
 - `references/workflow.md`: mode selection, work-unit loop, optional review passes.
+- `references/unknowns.md`: clarifying the map — discovering unknowns before, during, and after implementation.
 - `references/verification.md`: choosing and reporting proof.
 - `references/final-report.md`: concise final report format.
 

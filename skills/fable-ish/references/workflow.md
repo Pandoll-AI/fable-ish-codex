@@ -30,6 +30,8 @@ Use depth to choose rigor. Use work kind to choose proof.
 
 ## Deep-Task Preamble: Six Questions
 
+When the area is unfamiliar, run a blind-spot pass first (see `references/unknowns.md`) so the questions below are answered against the real territory, not a guess.
+
 Before implementing a deep task, answer these in prose (they are the harness):
 
 1. What invariant does this work unit preserve or change?
