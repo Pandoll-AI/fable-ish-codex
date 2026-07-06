@@ -10,7 +10,7 @@
 ![fable-ish Pandoll verification hero](assets/hero.png)
 
 <details>
-<summary>fable-ish toon image</summary>
+<summary>> Open Readme-toon...</summary>
 
 ![fable-ish README toon image](assets/fable-readme-toon.png)
 
