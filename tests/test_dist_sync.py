@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Drift detection between the canonical root and the distribution repo."""
+"""Drift detection between this repo and its install/cache targets."""
 
 from __future__ import annotations
 
-import hashlib
 import sys
 import unittest
 from pathlib import Path
@@ -11,27 +10,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from sync_dist import ship_files
-
-
-DIST = ROOT / "fable-ish-codex"
-
-
-def file_hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+from sync_dist import check_target, default_targets, ship_files
 
 
 class DistSyncTestCase(unittest.TestCase):
-    @unittest.skipUnless(DIST.is_dir(), "distribution repo not checked out")
-    def test_root_and_distribution_repo_do_not_drift(self) -> None:
+    def test_existing_targets_do_not_drift(self) -> None:
+        files = ship_files()
         problems: list[str] = []
-        for relative in ship_files():
-            source = ROOT / relative
-            dest = DIST / relative
-            if not dest.is_file():
-                problems.append(f"{relative}: missing in fable-ish-codex")
-            elif file_hash(source) != file_hash(dest):
-                problems.append(f"{relative}: content drift")
+        checked = 0
+        for target in default_targets():
+            # Install/cache locations are absent in a clean checkout (for
+            # example public CI); only present targets are held to the rule.
+            if not target.is_dir():
+                continue
+            checked += 1
+            problems.extend(check_target(target, files))
+        if checked == 0:
+            self.skipTest("no install/cache targets present")
         self.assertEqual(problems, [], "run: python3 scripts/sync_dist.py")
 
 

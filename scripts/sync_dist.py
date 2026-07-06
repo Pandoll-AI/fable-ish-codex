@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Sync canonical fable-ish sources to distribution targets.
+"""Sync fable-ish-codex sources to its install and cache locations.
 
-Replaces the prose "MUST NOT drift" rule in AGENTS.md with a mechanical
-boundary: run this script to propagate, run it with --check to detect drift.
+This repository is self-contained: it owns the installed plugin and the plugin
+cache. Run this script to propagate a verified change, run it with --check to
+detect drift.
 """
 
 from __future__ import annotations
@@ -28,7 +29,6 @@ def plugin_version() -> str:
 def default_targets() -> list[Path]:
     home = Path.home()
     return [
-        ROOT / "fable-ish-codex",
         home / "plugins" / "fable-ish-codex",
         home / ".codex" / "plugins" / "cache" / "personal" / "fable-ish-codex" / plugin_version(),
     ]
