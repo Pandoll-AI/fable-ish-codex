@@ -193,6 +193,7 @@ def context_for_mode(mode: str, risk_flags: list[str]) -> str:
     elif mode == "normal":
         lines.append("If files change, run one relevant verification command or state why none applies.")
     elif mode == "deep":
+        lines.append("Before implementation, run a blind-spot pass so the exit proof targets the real constraints.")
         lines.append("Define the exit proof before completion and verify changed behavior before final.")
     elif mode == "blocked":
         lines.append("Do not proceed until the risky request is narrowed or explicitly confirmed.")

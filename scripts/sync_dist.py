@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SHIP_DIRS = ("hooks", "scripts", "skills", "rules", "examples", "tests", ".codex-plugin")
+SHIP_FILES = ("README.md", "README.en.md")
 EXCLUDED_PARTS = {"__pycache__", ".DS_Store", ".pytest_cache"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
 
@@ -36,6 +37,10 @@ def default_targets() -> list[Path]:
 
 def ship_files() -> list[Path]:
     files: list[Path] = []
+    for file_name in SHIP_FILES:
+        path = ROOT / file_name
+        if path.is_file():
+            files.append(Path(file_name))
     for dir_name in SHIP_DIRS:
         base = ROOT / dir_name
         if not base.is_dir():

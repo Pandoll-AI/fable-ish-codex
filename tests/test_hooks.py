@@ -125,6 +125,19 @@ class HookTestCase(unittest.TestCase):
         third = self.run_hook("hooks/stop_gate.py", {**self.base, "hook_event_name": "Stop"})
         self.assertIn("verification", third.get("systemMessage", ""))
 
+    def test_deep_mode_context_prompts_unknown_discovery(self) -> None:
+        out = self.run_hook(
+            "hooks/user_prompt_submit.py",
+            {
+                **self.base,
+                "hook_event_name": "UserPromptSubmit",
+                "prompt": "Do a deep production-ready refactor",
+            },
+        )
+        context = out["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("blind-spot pass", context)
+        self.assertIn("exit proof", context)
+
     def test_stop_hook_active_does_not_block_again(self) -> None:
         self.run_hook(
             "hooks/user_prompt_submit.py",

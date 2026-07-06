@@ -1,0 +1,199 @@
+# fable-ish
+
+[![English](https://img.shields.io/badge/lang-English-blue)](README.en.md)
+[![Korean](https://img.shields.io/badge/lang-%ED%95%9C%EA%B5%AD%EC%96%B4-lightgrey)](README.md)
+
+![fable-ish Pandoll verification hero](assets/hero.png)
+
+`fable-ish` is a Codex plugin that adds a lightweight verification gate around
+coding tasks while keeping the original `fable-ish` skill name.
+`fablish` is treated only as a common typo alias in instructions; it is not a
+second plugin or skill name.
+
+It is not a new orchestrator and does not rename the workflow. The plugin
+packages one skill plus lifecycle hooks for task classification, risky command
+checks, verification tracking, declared exit criteria, and stop-time
+completion review.
+
+## What Changed In 2.0
+
+Fable came back and graded this repo herself — premises first, harshly.
+2.0 is what she fixed before leaving (full story in [README.md](README.md)):
+
+- A concurrency test that claimed "no ledger race" without reading the ledger
+  (17-20 of 24 concurrent writes survived). Now file-locked and honestly
+  asserted: 24/24.
+- The prose "MUST NOT drift" sync rule, found already drifted. Now a tool:
+  `scripts/sync_dist.py` plus `tests/test_dist_sync.py`.
+- Dynamic exit criteria existed only in the docs. Now the model declares,
+  revises, and satisfies criteria via `scripts/fable_criteria.py`, and the
+  stop gate enforces the model's own declarations. Judgment stays with the
+  model; the plugin keeps the books.
+- Risk is read from the change, not just the prompt: risky paths (auth,
+  migrations, money, CI) escalate a task to deep mid-session.
+- Build/typecheck alone no longer completes deep work; every stop carries a
+  one-line status dashboard; unverified changes carry over visibly instead of
+  evaporating.
+- Irreversible outward commands (publish, migrate deploy, infra apply,
+  production deploy) request one confirmation instead of passing silently.
+- Verification aimed at the wrong target now has a name and a remedy:
+  `references/unknowns.md` adds map/territory framing, blind-spot passes,
+  unknown knowns, and unknown unknowns for unfamiliar or deep work.
+
+Her one rule that could not be mechanized remains prose: do not claim
+verification that was not observed.
+
+Korean is the default README. Use the Korean badge above to return to it.
+
+## What Is Included
+
+- Plugin manifest: `.codex-plugin/plugin.json`
+- Skill: `skills/fable-ish/SKILL.md`
+- Hook config: `hooks/hooks.json`
+- Hook entrypoints:
+  - `hooks/user_prompt_submit.py`
+  - `hooks/pre_tool_use.py`
+  - `hooks/post_tool_use.py`
+  - `hooks/stop_gate.py`
+- Standard-library helper scripts under `scripts/`
+
+## Install And Trust
+
+Add this plugin through a Codex marketplace entry or copy it into a plugin
+location referenced by a marketplace.
+
+After installing or changing the plugin, restart Codex. Codex discovers the
+default plugin hook path at `hooks/hooks.json`. Plugin-bundled hooks are not
+trusted automatically. Open `/hooks`, review the current hook definitions, and
+trust them before relying on the gate.
+
+Hooks can be disabled globally with:
+
+```toml
+[features]
+hooks = false
+```
+
+If hooks are disabled or not trusted, the skill still works as reusable
+instructions, but the mechanical gates will not run.
+
+For a personal local install, keep the plugin at:
+
+```text
+~/plugins/fable-ish
+```
+
+and expose it from:
+
+```text
+~/.agents/plugins/marketplace.json
+```
+
+Then install with:
+
+```bash
+codex plugin add fable-ish@personal
+```
+
+## Hook Roles
+
+- `UserPromptSubmit`: classifies the request as `quick`, `normal`, `deep`, or
+  `blocked`, then injects short Codex context. Unverified changes from the
+  previous prompt are carried over as visible context (non-blocking).
+- `PreToolUse`: blocks destructive local actions, infrastructure destruction,
+  and risky patch actions before supported tool calls. Irreversible
+  outward-facing commands (publish, migrate deploy, infra apply, production
+  deploy) request confirmation (`ask`) instead of being denied.
+- `PostToolUse`: records changed-file signals, verification commands, and
+  failures in a small JSON ledger. Verification coverage is recorded only as
+  `direct`, `generic`, `uncertain`, or `none`; it is not a quality guarantee.
+  Changing a risky path (auth, migrations, money, CI workflows) escalates a
+  `normal` task to `deep`. Invocations of `scripts/fable_criteria.py` are
+  recorded as declared exit criteria instead of file changes.
+- `Stop`: asks Codex to continue when normal or deep work lacks verification
+  evidence, with a maximum of two blocks. For deep work the gate first
+  enforces the model's own declared exit criteria; build/typecheck alone does
+  not satisfy deep work. Every stop with activity includes a one-line status
+  dashboard (changes, verifications, coverage, criteria, failures).
+
+## Exit Criteria CLI
+
+For deep work, declare the observable exit condition and track it:
+
+```bash
+python3 scripts/fable_criteria.py declare "pytest tests/x green" --kind test
+python3 scripts/fable_criteria.py revise c1 "full suite green" --reason "suite became the harness"
+python3 scripts/fable_criteria.py satisfy c1 --evidence "42 passed"
+```
+
+The CLI only echoes; the PostToolUse hook records the invocation in the
+session ledger. The stop gate blocks deep completion while declared criteria
+remain open. Judgment about what the criterion should be stays with the
+model; the plugin only does the bookkeeping.
+
+## Optional Rules And Permissions
+
+Hooks are the default plugin guardrail. For stronger command policy, copy
+`rules/fable-ish.rules` into an active Codex config layer's `rules/` directory
+and test it with:
+
+```bash
+codex execpolicy check --pretty --rules rules/fable-ish.rules -- git reset --hard
+```
+
+For secret-file protection, adapt `examples/permissions.toml` into your Codex
+configuration. Secret output and remote push are not restricted by the
+fable-ish hooks. Package publishing, migration deploy, infrastructure apply,
+and production deploy commands are never auto-denied, but they request one
+confirmation (`ask`) before running. The safe workflow commands `ship` and
+`yeet`, including their slash-command and `gstack` wrapper forms, are not
+restricted.
+
+## Limits
+
+Codex hooks are guardrails, not a complete security boundary.
+
+- Multiple matching hooks can run concurrently; the ledger serializes updates
+  with a file lock.
+- `PreToolUse` does not intercept every possible shell path.
+- `PostToolUse` cannot undo side effects from a completed command.
+- Hooks require review and trust before running.
+- Stop blocking is intentionally capped to avoid infinite loops.
+- Exit criteria are self-declared by the model; the gate enforces bookkeeping,
+  not truth. A criterion satisfied without real evidence is a reporting
+  violation, not something hooks can detect.
+- There is no background re-evaluation loop; hooks only run at tool and stop
+  boundaries, so criteria re-evaluation signals are event-driven.
+- If the host does not support the `ask` permission decision, treat those
+  commands as allowed-with-warning and confirm manually.
+- Rules and permission profiles are optional configuration layers; this plugin
+  documents examples but does not silently install them.
+
+Use sandboxing, approvals, tests, linters, and review policies for stronger
+enforcement.
+
+## Excluded By Design
+
+- No MCP server.
+- No app integration.
+- No external API.
+- No web server or UI.
+- No database.
+- No background worker.
+- No LLM classifier.
+- No GitHub, Slack, Gmail, or Notion integration.
+- No complex policy engine.
+
+## Verification
+
+Run these checks from the plugin root:
+
+```bash
+python3 -m json.tool .codex-plugin/plugin.json
+python3 -m json.tool hooks/hooks.json
+python3 -m py_compile hooks/*.py scripts/*.py
+python3 -m unittest discover -s tests
+```
+
+Sample hook inputs can be piped into each hook script with `PLUGIN_DATA` set to a
+temporary directory.

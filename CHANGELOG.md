@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Made Korean the default README, moved the English version to
+  `README.en.md`, and updated language badges in both documents.
+- Documented unknown discovery in the public README flow so map/territory
+  framing, blind-spot passes, and unknown knowns/unknown unknowns are visible
+  outside the skill reference.
+- Added deep-mode hook context that prompts Codex to run a blind-spot pass
+  before implementation, with test coverage for the injected context.
+- Included top-level README files in distribution sync so install and cache
+  targets do not drift from the repository docs.
+
 ## 2.0.0 - 2026-07-03
 
 - Renumbered the unpublished 1.0.6 staging release to 2.0.0: the declared
