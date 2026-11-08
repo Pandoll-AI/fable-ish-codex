@@ -8,3 +8,7 @@ __pycache__/
 dist/
 *.zip
 .fable-ish-ledger/
+
+# Local AI assistant workspace files
+.claude/
+.codex/
